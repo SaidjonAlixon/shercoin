@@ -23,12 +23,22 @@ const userTapCounts = new Map<number, { count: number; resetTime: number }>();
 export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/telegram", async (req, res) => {
     try {
+      console.log("POST /api/auth/telegram - Request received");
       const { initData, referrerId } = req.body;
 
       const botToken = process.env.TELEGRAM_BOT_TOKEN;
       const isDevelopment = process.env.NODE_ENV === "development";
+      const allowDevAuth = process.env.ALLOW_DEV_AUTH === "true";
 
-      if (!botToken && !isDevelopment) {
+      console.log("Auth config:", { 
+        hasBotToken: !!botToken, 
+        isDevelopment, 
+        allowDevAuth,
+        hasInitData: !!initData 
+      });
+
+      if (!botToken && !isDevelopment && !allowDevAuth) {
+        console.error("Bot token not configured and dev auth not allowed");
         return res.status(500).json({ error: "Bot token not configured" });
       }
 
@@ -38,13 +48,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let languageCode: string;
 
       if (!initData || initData === "") {
-        if (isDevelopment) {
+        // Development yoki test rejimida (Vercel'da ham test qilish uchun)
+        if (isDevelopment || allowDevAuth) {
+          console.log("Using dev auth mode");
           telegramId = 999999999;
           username = "devuser";
           firstName = "Dev";
           languageCode = "uz";
         } else {
-          return res.status(401).json({ error: "Missing Telegram authentication data" });
+          console.error("Missing initData and dev auth not allowed");
+          return res.status(401).json({ 
+            error: "Missing Telegram authentication data",
+            message: "Telegram WebApp initData kerak. Agar test qilmoqchi bo'lsangiz, ALLOW_DEV_AUTH=true qo'shing."
+          });
         }
       } else {
         if (!botToken) {

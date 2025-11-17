@@ -177,21 +177,43 @@ function AppContent() {
     const user = getTelegramUser();
     const referrerId = getReferrerId();
 
+    // Timeout qo'shamiz - agar 10 soniyada javob bo'lmasa, xato ko'rsatamiz
+    const timeoutId = setTimeout(() => {
+      if (!isAuthenticated) {
+        toast({
+          title: "Yuklash xatosi",
+          description: "Server javob bermayapti. Iltimos qayta urinib ko'ring.",
+          variant: "destructive",
+        });
+      }
+    }, 10000);
+
+    // Agar Telegram WebApp bo'lmasa, bo'sh initData yuboramiz
+    // Server ALLOW_DEV_AUTH=true bo'lsa, test user yaratadi
     apiRequest("POST", "/api/auth/telegram", {
-      initData,
+      initData: initData || "",
       referrerId,
     })
       .then(() => {
+        clearTimeout(timeoutId);
         setIsAuthenticated(true);
       })
-      .catch((error) => {
+      .catch((error: any) => {
+        clearTimeout(timeoutId);
         console.error("Auth failed:", error);
+        const errorMessage = error?.response?.data?.message || error?.message || "Iltimos qayta urinib ko'ring";
         toast({
           title: "Autentifikatsiya xatosi",
-          description: "Iltimos qayta urinib ko'ring",
+          description: errorMessage,
           variant: "destructive",
         });
+        // Xato bo'lsa ham, agar ALLOW_DEV_AUTH=true bo'lsa, qayta urinib ko'ramiz
+        if (errorMessage.includes("ALLOW_DEV_AUTH")) {
+          console.log("ALLOW_DEV_AUTH=true qo'shing Vercel environment variables'ga");
+        }
       });
+
+    return () => clearTimeout(timeoutId);
   }, []);
 
   useEffect(() => {

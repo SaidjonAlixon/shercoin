@@ -18,10 +18,11 @@
 3. **Environment Variables qo'shing:**
    Vercel Dashboard > Settings > Environment Variables da quyidagilarni qo'shing:
 
-   - `DATABASE_URL` - PostgreSQL database connection string (Neon yoki boshqa PostgreSQL)
-   - `TELEGRAM_BOT_TOKEN` - Telegram bot token (agar kerak bo'lsa)
-   - `SESSION_SECRET` - Session secret key (random string)
+   - `DATABASE_URL` - PostgreSQL database connection string (Neon yoki boshqa PostgreSQL) - **MAJBURIY**
+   - `TELEGRAM_BOT_TOKEN` - Telegram bot token (production uchun kerak)
+   - `SESSION_SECRET` - Session secret key (kuchli random string) - **MAJBURIY**
    - `NODE_ENV` - `production`
+   - `ALLOW_DEV_AUTH` - `true` (agar test qilmoqchi bo'lsangiz, Telegram WebApp bo'lmasa ham ishlashi uchun)
 
 4. **Build Settings:**
    - Build Command: `npm run build`

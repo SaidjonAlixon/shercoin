@@ -45,14 +45,24 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
 let routesInitialized = false;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (!routesInitialized) {
-    // Vercel uchun Server kerak emas, faqat routes qo'shamiz
-    // registerRoutes Server qaytaradi, lekin biz uni ishlatmaymiz
-    const server = await registerRoutes(app);
-    // Server ni ishlatmaymiz, chunki Vercel o'zi request'larni handle qiladi
-    routesInitialized = true;
-  }
+  try {
+    if (!routesInitialized) {
+      console.log("Initializing routes...");
+      // Vercel uchun Server kerak emas, faqat routes qo'shamiz
+      // registerRoutes Server qaytaradi, lekin biz uni ishlatmaymiz
+      const server = await registerRoutes(app);
+      // Server ni ishlatmaymiz, chunki Vercel o'zi request'larni handle qiladi
+      routesInitialized = true;
+      console.log("Routes initialized successfully");
+    }
 
-  return app(req as any, res as any);
+    return app(req as any, res as any);
+  } catch (error: any) {
+    console.error("Handler error:", error);
+    res.status(500).json({ 
+      error: "Internal Server Error",
+      message: error?.message || "Server xatosi yuz berdi"
+    });
+  }
 }
 
