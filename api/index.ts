@@ -7,11 +7,9 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-let initialized = false;
 let initPromise: Promise<void> | null = null;
 
 async function initialize() {
-  if (initialized) return;
   if (initPromise) return initPromise;
 
   initPromise = (async () => {
@@ -22,8 +20,6 @@ async function initialize() {
       if (res.headersSent) return next(err);
       res.status(err.status || 500).json({ error: err.message || "Server xatosi" });
     });
-    
-    initialized = true;
   })();
 
   return initPromise;

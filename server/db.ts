@@ -3,7 +3,6 @@ let pool: any = null;
 let initPromise: Promise<{ db: any; pool: any }> | null = null;
 
 async function initializeDb() {
-  if (db) return { db, pool };
   if (initPromise) return initPromise;
 
   initPromise = (async () => {
@@ -40,7 +39,7 @@ async function initializeDb() {
 }
 
 async function getDb() {
-  if (!db) await initializeDb();
+  await initializeDb();
   return db;
 }
 
