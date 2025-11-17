@@ -1,0 +1,288 @@
+“Sizning sheriksiz havolangiz” (copy button)
+
+t.me/SherCoinBot?start=123456789
+
+Statistika:
+
+Taklif qilingan do‘stlar: 14 ta
+
+Faol do‘stlar: 9 ta
+
+Referal daromad: 35 000 SherCoin
+
+Qoidalar:
+
+Har yangi foydalanuvchi uchun: +1000 SherCoin
+
+Do‘stning passiv daromadidan 5% ulush (soatlik hisoblanadi)
+
+11. "XAZINA" – HAMYON VA AIRDROP
+
+Tab'lar:
+
+Hamyon
+
+Jami SherCoin balans
+
+“O‘yindagi balans” vs “Airdropga ajratilgan”
+
+Kelajakda: “USDT / TON ga konvertatsiya” moduli qo‘shish uchun joy.
+
+Airdrop
+
+Kampaniya tafsilotlari
+
+Minimal ishtirok shartlari:
+
+Minimal balans
+
+Minimal do‘stlar soni
+
+“Airdropga qatnashyapsiz” / “Hali talabga javob bermaysiz” statuslari.
+
+12. SOZLAMALAR
+
+Sozlamalar oynasi (modal):
+
+Tillar: (hozircha)
+
+O‘zbek (default)
+
+Keyin qo‘shish uchun joy: Rus, Ingliz
+
+Rejim:
+
+Kunduzgi (Light)
+
+Kechgi (Dark)
+
+Avto (telefon tizimiga qarab)
+
+Ovoz:
+
+Bosilganda “klik” ovozi – yoqish/o‘chirish
+
+Bildirishnomalar:
+
+Kunlik bonus eslatmasi
+
+Maxsus kampaniyalar
+
+13. BOOSTLAR TIZIMI
+
+Boostlar menyusi:
+
+"SherKuch" – 30 daqiqa davomida 2x bosish
+
+"Cheksiz energiya" – 10 daqiqa energiya cheklanmaydi
+
+"Soatlik daromad 2x" – 1 soatga passiv daromad ikki baravar
+
+"AvtoTap" – 5 daqiqa davomida o‘zi bosadi
+
+Boostlar:
+
+Ma’lum miqdorda SherCoin evaziga faollashtiriladi.
+
+Har birining qolgan vaqti real-time ko‘rinadi.
+
+14. BACKEND LOGIKA (QISQACHA)
+
+Har bosishda:
+
+Telegram initData orqali userni tasdiqlash
+
+Energiya yetarli ekanini tekshirish
+
+Anti-cheat: sekundiga maksimal X ta bosish
+
+Balansni oshirish
+
+Kesh va DB yangilash
+
+Har daqiqada yoki 5 daqiqada:
+
+Soatlik passiv daromadni hisoblash (cron job).
+
+15. POSTGRESQL MA’LUMOTLAR BAZASI STRUKTURASI
+15.1. users jadvali
+
+id (PK, serial / bigserial)
+
+telegram_id (unique, bigint)
+
+username (varchar)
+
+first_name (varchar)
+
+language (varchar, default 'uz')
+
+created_at (timestamp)
+
+last_login_at (timestamp)
+
+referrer_id (bigint, FK → users.id, nullable)
+
+theme (varchar: 'light' | 'dark' | 'auto')
+
+15.2. balances
+
+user_id (PK, FK → users.id)
+
+balance (bigint, default 0)
+
+hourly_income (bigint, default 0)
+
+total_taps (bigint, default 0)
+
+energy (int, default 1000)
+
+max_energy (int, default 1000)
+
+energy_updated_at (timestamp)
+
+15.3. boosts
+
+id (PK)
+
+code (varchar: 'DOUBLE_TAP', 'UNLIMITED_ENERGY' …)
+
+name (varchar, uzbekcha nom)
+
+description (text)
+
+duration_seconds (int)
+
+price (bigint)
+
+15.4. user_boosts
+
+id (PK)
+
+user_id (FK)
+
+boost_id (FK)
+
+started_at (timestamp)
+
+expires_at (timestamp)
+
+is_active (bool)
+
+15.5. tasks
+
+id (PK)
+
+type (varchar: 'daily', 'once', 'special')
+
+title (varchar)
+
+description (text)
+
+reward (bigint)
+
+link (varchar, nullable)
+
+is_active (bool)
+
+created_at (timestamp)
+
+15.6. user_tasks
+
+id (PK)
+
+user_id (FK)
+
+task_id (FK)
+
+status (varchar: 'new', 'in_progress', 'checking', 'done')
+
+updated_at (timestamp)
+
+15.7. referrals
+
+id (PK)
+
+referrer_id (FK → users.id)
+
+friend_id (FK → users.id)
+
+created_at (timestamp)
+
+bonus_given (bool)
+
+15.8. transactions
+
+id (PK)
+
+user_id (FK)
+
+type (varchar: 'tap', 'task', 'referral', 'boost_buy', 'airdrop', ...)
+
+amount (bigint, + yoki -)
+
+meta (jsonb)
+
+created_at (timestamp)
+
+15.9. promo_codes
+
+id (PK)
+
+code (varchar, unique)
+
+reward (bigint)
+
+max_usage (int)
+
+used_count (int)
+
+expires_at (timestamp, nullable)
+
+is_active (bool)
+
+15.10. promo_code_usages
+
+id (PK)
+
+user_id (FK)
+
+promo_id (FK)
+
+used_at (timestamp)
+
+16. ADMIN PANEL FUNKSIYALARI (WEB)
+
+Foydalanuvchilar ro‘yxati, filtrlash, qidirish
+
+Balansni qo‘lda o‘zgartirish (log bilan)
+
+Promo-kod yaratish, tahrirlash
+
+Topshiriqlar yaratish
+
+Boostlar narxini o‘zgartirish
+
+Statistika:
+
+Umumiy foydalanuvchilar soni
+
+Bugungi yangi foydalanuvchilar
+
+Jami bosishlar
+
+Jami topshiriqlar yakunlangan
+
+Airdropga mos foydalanuvchilar soni
+
+17. XAVFSIZLIK VA ANTI-CHEAT
+
+Telegram initData signaturasini tekshirish (HMAC-SHA256)
+
+Har user uchun:
+
+Sekundiga maksimal tap soni (masalan 15–20 tadan ko‘p bo‘lsa – bloklash)
+
+Bir nechta accountni bir telefon orqali mass-registratsiya belgilari (IP, device-info)
+
+Shubhali foydalanuvchilarni banned_users jadvalida saqlash.

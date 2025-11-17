@@ -1,0 +1,244 @@
+1. LOYIHA TASNIFI
+
+SherCoin – Telegram Mini App ko‘rinishidagi “tap-to-earn” o‘yin:
+
+Foydalanuvchi sher tasviri tushirilgan tangani bosib, SherCoin yig‘adi.
+
+Kunlik bonus, topshiriqlar, referal orqali daromad, boostlar mavjud.
+
+Dizayn: zamonaviy, to‘q ranglar, Light (kunduzgi) va Dark (kechgi) rejimlar.
+
+Barcha ma’lumotlar PostgreSQL bazasida saqlanadi.
+
+2. TEXNOLOGIYALAR
+
+Frontend:
+
+Telegram Mini App (WebApp)
+
+React / Next.js (App Router bo‘lishi mumkin)
+
+TypeScript (ixtiyoriy, lekin tavsiya etiladi)
+
+State management: React Query / Redux Toolkit
+
+Backend:
+
+Node.js (Express yoki NestJS)
+
+PostgreSQL
+
+Prisma / TypeORM (ORM sifatida)
+
+Autentifikatsiya:
+
+Telegram WebApp initData orqali foydalanuvchini tasdiqlash (HMAC check)
+
+3. BREND VA DIZAYN
+3.1. Asosiy rang sxemasi
+
+Light (Kunduzgi) rejim:
+
+Fon:
+
+#0F7BDA → #031C4F (yuqoridan pastga gradient)
+
+Kartalar fonlari: #FFFFFF (engil soyalar bilan)
+
+Matn: #FFFFFF (fon to‘q joylarda) yoki #1B1F3B (oq kartalarda)
+
+SherCoin: oltin gradient: #FFD43B → #F2B600
+
+Dark (Kechgi) rejim:
+
+Fon: #020617 → #02020F (chuqur to‘q ko‘k / qora)
+
+Kartalar: #0F172A / #111827
+
+Matn: #E5E7EB (kulrang-oq)
+
+Aksent: Neon ko‘kimtir #38BDF8 va oltin #FACC15
+
+Umumiy elementlar:
+
+Barcha tugmalar radius: 16–20px
+
+Coin – 3D effekt, yumshoq highlight va shadow
+
+Soya: 0 8px 25px rgba(0,0,0,0.35)
+
+4. ASOSIY NAVIGATSIYA VA MENYULAR
+
+Pastki menyu (Bottom Navigation) – 5 ta bo‘lim:
+
+"Arena" – (oldingi TAP)
+
+Katta SherCoin bosiladigan asosiy sahifa.
+
+"Topshiriqlar" – (oldingi Tasks)
+
+Kundalik, bir martalik va maxsus topshiriqlar.
+
+"SherMaktab" – (oldingi Study)
+
+Qisqa maqolalar, mini-g‘oyalar, bilim modullari (o‘qib bonus olish).
+
+"Do‘stlar" – (oldingi Earn)
+
+Referal link, do‘stlar ro‘yxati, referal daromad.
+
+"Xazina" – (Wallet + Airdrop)
+
+Hamyon, kelajakdagi airdrop, chiqarish / claim bo‘limlari.
+
+5. YUQORI PANEL (HEADER)
+
+Har bir sahifada bir xil strukturada:
+
+Chapda: Profil avatari (telegram username’dan)
+
+O‘rtada: Joriy balans (SherCoin belgisi bilan)
+
+O‘ngda: 2 ta ikon:
+
+🔔 Bildirishnomalar
+
+⚙️ Sozlamalar (Light/Dark, til, ovoz)
+
+Profilga bosilganda:
+
+Username, ID
+
+Ro‘yxatdan o‘tgan sana
+
+Umumiy bosishlar soni
+
+Daraja (Level) va tajriba (XP)
+
+6. BONUS PANELI (Header ostida)
+
+3 ta kvadrat kartochka horizontal scroll ko‘rinishida:
+
+"Kundalik kirish"
+
+7 kunlik zanjir, har kuni bonus oshib boradi.
+
+"Omad kodi"
+
+Promo-kod kiritish oynasi (Admin beradigan kodlar).
+
+"Kunlik vazifa"
+
+Bugungi 1 ta asosiy missiya (masalan: 1000 marta bos, 3 do‘st chaqir).
+
+Har bir kartochka:
+
+Ikon
+
+Sarlavha
+
+Kichik izoh yoki bonus miqdori
+
+7. "ARENA" – ASOSIY O‘YIN SAHIFASI
+
+Elementlar tartibi:
+
+Yuqori panel (profil + balans + sozlamalar)
+
+Bonus paneli (3 ta card)
+
+Balans banneri:
+
+Balans: 612 450 SherCoin
+
+Soatlik daromad: +215 880 / soat
+
+Katta SherCoin (bosiladigan):
+
+Bosganda animatsiya: scale 1 → 1.1 → 1
+
+Ekranda +XX SherCoin “uchib chiqishi”
+
+Energiya paneli:
+
+Chiziq: Energiya: 750 / 1000
+
+Pastida: “Energiya har 3 sekundda +5 ga to‘ldiriladi.”
+
+Quick-Buttons:
+
+"SherBoost" (boostlar)
+
+"SherDo‘stlar" (referalga shortcut)
+
+O‘yin mexanikasi:
+
+1 bosish = bazaviy 1 SherCoin
+
+Boost bilan 2x/3x bo‘lishi mumkin.
+
+Energiya 0 bo‘lsa – bosganda “Energiya tugagan” toast chiqadi.
+
+Energiya:
+
+max: 1000 (boostlar bilan 2000+)
+
+tiklanish: har 3 sekundda +5
+
+8. "TOPSHIRIQLAR" BO‘LIMI
+
+Tab'lar bilan 3 bo‘lim:
+
+Kundalik topshiriqlar
+
+Bir martalik topshiriqlar
+
+Sher-maks bonus (maxsus kampaniyalar)
+
+Har bir topshiriq kartochkasi:
+
+Icon
+
+Nomi:
+
+Masalan: “Telegram kanalga a’zo bo‘ling”
+
+Izoh:
+
+“SherCoin yangiliklar kanaliga qo‘shiling”
+
+Mukofot: +500 SherCoin
+
+Holat:
+
+"Boshlanmagan", "Tekshirilmoqda", "Bajarilgan"
+
+Tugmalar:
+
+Boshlash, Tekshirish, Mukofotni olish
+
+9. "SHERMAKTAB" BO‘LIMI
+
+Maqolalar va mini-bilimlar:
+
+Ro‘yxat:
+
+“Onlayn marketing asoslari”
+
+“Telegram bot orqali biznes”
+
+“Kiberxavfsizlik 10 qoidasi”
+
+Har birini oxirigacha o‘qib tugatganda:
+
++20–50 SherCoin
+
+Ekspiriment sifatida keyin:
+
+Mini-test (3 savol) → to‘g‘ri javobga bonus.
+
+10. "DO‘STLAR" BO‘LIMI (REFERAL)
+
+Bo‘lim tarkibi:
+
+Referal referans:
