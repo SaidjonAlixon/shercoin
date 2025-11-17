@@ -69,60 +69,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(500).json({ error: "Bot token not configured" });
         }
 
-        if (!verifyTelegramWebAppData(initData, botToken)) {
-          return res.status(401).json({ error: "Invalid Telegram data" });
-        }
+        try {
+          if (!verifyTelegramWebAppData(initData, botToken)) {
+            return res.status(401).json({ error: "Invalid Telegram data" });
+          }
 
-        const params = new URLSearchParams(initData);
-        const userDataStr = params.get("user");
-        if (!userDataStr) {
-          return res.status(401).json({ error: "Invalid user data" });
-        }
+          const params = new URLSearchParams(initData);
+          const userDataStr = params.get("user");
+          if (!userDataStr) {
+            return res.status(401).json({ error: "Invalid user data" });
+          }
 
-        const userData = JSON.parse(userDataStr);
-        telegramId = userData.id;
-        username = userData.username || null;
-        firstName = userData.first_name || null;
-        languageCode = userData.language_code || "uz";
+          const userData = JSON.parse(userDataStr);
+          telegramId = userData.id;
+          username = userData.username || null;
+          firstName = userData.first_name || null;
+          languageCode = userData.language_code || "uz";
+        } catch (parseError: any) {
+          return res.status(401).json({ error: "Invalid Telegram data format" });
+        }
       }
 
-      let user = await storage.getUserByTelegramId(telegramId);
+      try {
+        let user = await storage.getUserByTelegramId(telegramId);
 
-      if (!user) {
-        user = await storage.createUser({
-          telegramId,
-          username,
-          firstName,
-          language: languageCode,
-          referrerId: validReferrerId,
-          theme: "auto",
-        });
+        if (!user) {
+          user = await storage.createUser({
+            telegramId,
+            username,
+            firstName,
+            language: languageCode,
+            referrerId: validReferrerId,
+            theme: "auto",
+          });
 
-        await storage.createBalance({
-          userId: user.id,
-          balance: 0,
-          hourlyIncome: 0,
-          totalTaps: 0,
-          energy: 1000,
-          maxEnergy: 1000,
-          level: 1,
-          xp: 0,
-        });
+          await storage.createBalance({
+            userId: user.id,
+            balance: 0,
+            hourlyIncome: 0,
+            totalTaps: 0,
+            energy: 1000,
+            maxEnergy: 1000,
+            level: 1,
+            xp: 0,
+          });
 
-        if (validReferrerId) {
-          await storage.createReferral(validReferrerId, user.id);
-          await storage.updateBalance(validReferrerId, 1000);
-          await storage.createTransaction(validReferrerId, "referral", 1000, { friendId: user.id });
+          if (validReferrerId) {
+            try {
+              await storage.createReferral(validReferrerId, user.id);
+              await storage.updateBalance(validReferrerId, 1000);
+              await storage.createTransaction(validReferrerId, "referral", 1000, { friendId: user.id });
+            } catch (refError) {
+              // Referral error'ni ignore qilamiz, asosiy user yaratildi
+            }
+          }
+        } else {
+          await storage.updateUserLogin(user.id);
         }
-      } else {
-        await storage.updateUserLogin(user.id);
-      }
 
-      res.json({ success: true, userId: user.id });
+        return res.json({ success: true, userId: user.id });
+      } catch (dbError: any) {
+        console.error("Database error in auth:", dbError);
+        return res.status(500).json({ 
+          error: "Database error", 
+          message: "Database bilan bog'lanishda xato. Iltimos qayta urinib ko'ring." 
+        });
+      }
     } catch (error: any) {
       console.error("Auth error:", error);
       if (!res.headersSent) {
-        res.status(500).json({ error: "Authentication failed", message: error?.message || "Xato yuz berdi" });
+        return res.status(500).json({ 
+          error: "Authentication failed", 
+          message: error?.message || "Xato yuz berdi" 
+        });
       }
     }
   });
