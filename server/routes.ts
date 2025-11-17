@@ -42,50 +42,27 @@ const TAP_COOLDOWN_MS = 1000;
 const userTapCounts = new Map<number, { count: number; resetTime: number }>();
 
 export async function registerRoutes(app: Express): Promise<Server> {
-      app.post("/api/auth/telegram", async (req, res) => {
+  app.post("/api/auth/telegram", async (req, res) => {
     try {
-      console.log("POST /api/auth/telegram - Request received");
       const { initData, referrerId: referrerIdRaw } = req.body;
-      
-      // referrerId ni number ga o'tkazamiz
       const referrerId = referrerIdRaw ? parseInt(String(referrerIdRaw), 10) : null;
       const validReferrerId = referrerId && !isNaN(referrerId) ? referrerId : null;
 
       const botToken = process.env.TELEGRAM_BOT_TOKEN;
-      const isDevelopment = process.env.NODE_ENV === "development";
       const allowDevAuth = process.env.ALLOW_DEV_AUTH === "true";
 
-      console.log("Auth config:", { 
-        hasBotToken: !!botToken, 
-        isDevelopment, 
-        allowDevAuth,
-        hasInitData: !!initData 
-      });
-
-      if (!botToken && !isDevelopment && !allowDevAuth) {
-        console.error("Bot token not configured and dev auth not allowed");
-        return res.status(500).json({ error: "Bot token not configured" });
-      }
-
       let telegramId: number;
-      let username: string | null;
-      let firstName: string | null;
-      let languageCode: string;
+      let username: string | null = null;
+      let firstName: string | null = null;
+      let languageCode = "uz";
 
       if (!initData || initData === "") {
-        // Development yoki test rejimida (Vercel'da ham test qilish uchun)
-        if (isDevelopment || allowDevAuth) {
-          console.log("Using dev auth mode");
+        if (allowDevAuth) {
           telegramId = 999999999;
           username = "devuser";
           firstName = "Dev";
-          languageCode = "uz";
         } else {
-          console.error("Missing initData and dev auth not allowed");
-          return res.status(401).json({ 
-            error: "Missing Telegram authentication data",
-            message: "Telegram WebApp initData kerak. Agar test qilmoqchi bo'lsangiz, ALLOW_DEV_AUTH=true qo'shing."
-          });
+          return res.status(401).json({ error: "Missing Telegram authentication data" });
         }
       } else {
         if (!botToken) {
@@ -114,9 +91,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user) {
         user = await storage.createUser({
           telegramId,
-          username: username || null,
-          firstName: firstName || null,
-          language: languageCode || "uz",
+          username,
+          firstName,
+          language: languageCode,
           referrerId: validReferrerId,
           theme: "auto",
         });
@@ -141,21 +118,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updateUserLogin(user.id);
       }
 
-      // Session middleware olib tashlandi, userId response'da qaytariladi
-      // Client tomonida localStorage'da saqlanadi va har bir request'da header'da yuboriladi
       res.json({ success: true, userId: user.id });
     } catch (error: any) {
-      console.error("❌ Auth error:", error);
-      console.error("Auth error stack:", error?.stack);
-      console.error("Auth error name:", error?.name);
-      console.error("Auth error message:", error?.message);
-      
-      // Agar response yuborilmagan bo'lsa, yuboramiz
+      console.error("Auth error:", error);
       if (!res.headersSent) {
-        res.status(500).json({ 
-          error: "Authentication failed",
-          message: error?.message || "Autentifikatsiya xatosi yuz berdi"
-        });
+        res.status(500).json({ error: "Authentication failed", message: error?.message || "Xato yuz berdi" });
       }
     }
   });

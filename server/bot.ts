@@ -5,7 +5,7 @@ import { Telegraf, Markup } from 'telegraf';
 const botToken = process.env.TELEGRAM_BOT_TOKEN;
 // Vercel URL yoki boshqa WebApp URL
 const webAppUrl = process.env.WEBAPP_URL || 
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://your-vercel-url.vercel.app');
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://shercoin.vercel.app/');
 
 if (!botToken) {
   console.error('⚠️  TELEGRAM_BOT_TOKEN environment variable topilmadi!');
