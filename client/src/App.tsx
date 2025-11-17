@@ -5,9 +5,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { useToast } from "@/hooks/use-toast";
-import { initTelegramWebApp, getTelegramInitData, getTelegramUser, getReferrerId } from "@/lib/telegram";
+import { initTelegramWebApp, getTelegramInitData } from "@/lib/telegram";
 import { useEffect, useState } from "react";
-import { apiRequest, setUserId } from "@/lib/queryClient";
+import { apiRequest, setUserId, getUserId } from "@/lib/queryClient";
 
 import { Header } from "@/components/layout/header";
 import { BottomNav } from "@/components/layout/bottom-nav";
@@ -171,53 +171,49 @@ function AppContent() {
   });
 
   useEffect(() => {
-    initTelegramWebApp();
+    // Telegram WebApp'ni initialize qilish (ixtiyoriy)
+    try {
+      initTelegramWebApp();
+    } catch (e) {
+      // Telegram bo'lmasa ham ishlaydi
+    }
 
+    // Agar localStorage'da userId bo'lsa, ishlatamiz
+    const existingUserId = getUserId();
+    if (existingUserId) {
+      setIsAuthenticated(true);
+      return;
+    }
+
+    // Yangi user yaratish
     const initData = getTelegramInitData();
-    const user = getTelegramUser();
-    const referrerId = getReferrerId();
-
-    // Timeout qo'shamiz - agar 10 soniyada javob bo'lmasa, xato ko'rsatamiz
-    const timeoutId = setTimeout(() => {
-      if (!isAuthenticated) {
-        toast({
-          title: "Yuklash xatosi",
-          description: "Server javob bermayapti. Iltimos qayta urinib ko'ring.",
-          variant: "destructive",
-        });
-      }
-    }, 10000);
-
-    // Agar Telegram WebApp bo'lmasa, bo'sh initData yuboramiz
-    // Server ALLOW_DEV_AUTH=true bo'lsa, test user yaratadi
     apiRequest("POST", "/api/auth/telegram", {
       initData: initData || "",
-      referrerId,
     })
       .then((data: any) => {
-        clearTimeout(timeoutId);
-        // userId ni localStorage'ga saqlaymiz
         if (data?.userId) {
           setUserId(data.userId);
+          setIsAuthenticated(true);
         }
-        setIsAuthenticated(true);
       })
       .catch((error: any) => {
-        clearTimeout(timeoutId);
         console.error("Auth failed:", error);
-        const errorMessage = error?.response?.data?.message || error?.message || "Iltimos qayta urinib ko'ring";
-        toast({
-          title: "Autentifikatsiya xatosi",
-          description: errorMessage,
-          variant: "destructive",
-        });
-        // Xato bo'lsa ham, agar ALLOW_DEV_AUTH=true bo'lsa, qayta urinib ko'ramiz
-        if (errorMessage.includes("ALLOW_DEV_AUTH")) {
-          console.log("ALLOW_DEV_AUTH=true qo'shing Vercel environment variables'ga");
-        }
+        // Xato bo'lsa ham, oddiy user yaratishga harakat qilamiz
+        apiRequest("POST", "/api/auth/telegram", {})
+          .then((data: any) => {
+            if (data?.userId) {
+              setUserId(data.userId);
+              setIsAuthenticated(true);
+            }
+          })
+          .catch(() => {
+            toast({
+              title: "Xato",
+              description: "Ilovani yuklab bo'lmadi",
+              variant: "destructive",
+            });
+          });
       });
-
-    return () => clearTimeout(timeoutId);
   }, []);
 
   useEffect(() => {
