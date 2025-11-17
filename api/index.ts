@@ -38,14 +38,24 @@ async function initialize() {
       console.log("DATABASE_URL exists:", !!process.env.DATABASE_URL);
       console.log("DATABASE_URL type:", process.env.DATABASE_URL?.substring(0, 20) || 'not set');
       
-      // Database initialization uchun timeout qo'shamiz (10 soniya - Vercel free tier limiti)
-      const dbInitPromise = initializeDb();
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Database initialization timeout (10s)')), 10000)
-      );
-      
-      await Promise.race([dbInitPromise, timeoutPromise]);
-      console.log("✅ Database initialized successfully");
+      // Database initialization uchun timeout qo'shamiz (5 soniya - Vercel free tier limiti)
+      try {
+        const dbInitPromise = initializeDb();
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Database initialization timeout (5s)')), 5000)
+        );
+        
+        await Promise.race([dbInitPromise, timeoutPromise]);
+        console.log("✅ Database initialized successfully");
+      } catch (dbError: any) {
+        console.error("❌ Database initialization error:", dbError);
+        // Agar database connection muammo bo'lsa, lekin routes ishlashi kerak
+        // (ba'zi endpoint'lar database'siz ishlashi mumkin)
+        if (dbError?.message?.includes('timeout')) {
+          throw new Error('Database connection timeout - DATABASE_URL tekshiring');
+        }
+        throw dbError;
+      }
 
       console.log("🔧 Step 2: Initializing routes...");
       // Vercel uchun Server kerak emas, faqat routes qo'shamiz
