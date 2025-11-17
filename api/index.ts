@@ -51,7 +51,13 @@ async function initialize() {
       console.log("DATABASE_URL exists:", !!process.env.DATABASE_URL);
       console.log("DATABASE_URL type:", process.env.DATABASE_URL?.substring(0, 20) || 'not set');
       
-      await initializeDb();
+      // Database initialization uchun timeout qo'shamiz (30 soniya)
+      const dbInitPromise = initializeDb();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database initialization timeout')), 30000)
+      );
+      
+      await Promise.race([dbInitPromise, timeoutPromise]);
       console.log("✅ Database initialized successfully");
 
       console.log("🔧 Step 2: Initializing routes...");
@@ -115,8 +121,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // Express app ni ishlatamiz - Vercel uchun
-    app(req as any, res as any);
+    // Express app ni ishlatamiz - Vercel uchun Promise qaytaruvchi qilib
+    return new Promise<void>((resolve, reject) => {
+      app(req as any, res as any, (err: any) => {
+        if (err) {
+          console.error("❌ Express app error:", err);
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
   } catch (error: any) {
     console.error("❌ Handler error:", error);
     console.error("Error stack:", error?.stack);
