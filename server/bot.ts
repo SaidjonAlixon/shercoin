@@ -71,14 +71,46 @@ bot.command('help', async (ctx) => {
 });
 
 // Botni ishga tushirish
-bot.launch().then(() => {
-  console.log('✅ Telegram bot ishga tushdi!');
-  console.log(`🌐 WebApp URL: ${webAppUrl}`);
-  console.log(`🤖 Bot username: @${bot.botInfo?.username || 'unknown'}`);
-}).catch((error) => {
-  console.error('❌ Bot xatosi:', error);
-  process.exit(1);
-});
+async function startBot() {
+  try {
+    console.log('🚀 Bot ishga tushmoqda...');
+    console.log(`🌐 WebApp URL: ${webAppUrl}`);
+    
+    // Bot info olish
+    const botInfo = await bot.telegram.getMe();
+    console.log(`🤖 Bot username: @${botInfo.username}`);
+    console.log(`📝 Bot ID: ${botInfo.id}`);
+    console.log(`📛 Bot name: ${botInfo.first_name}`);
+    
+    // Botni ishga tushirish
+    await bot.launch();
+    console.log('✅ Telegram bot muvaffaqiyatli ishga tushdi!');
+    
+    // Bot info console'ga chiqarish
+    console.log(`\n📋 Bot ma'lumotlari:`);
+    console.log(`   Username: @${botInfo.username}`);
+    console.log(`   WebApp URL: ${webAppUrl}`);
+    console.log(`   Bot link: https://t.me/${botInfo.username}\n`);
+    
+  } catch (error: any) {
+    console.error('❌ Bot ishga tushirishda xato:', error);
+    console.error('Xato tafsilotlari:', {
+      message: error?.message,
+      stack: error?.stack,
+      code: error?.code,
+    });
+    
+    // Agar bot token noto'g'ri bo'lsa
+    if (error?.response?.error_code === 401) {
+      console.error('\n⚠️  Bot token noto\'g\'ri yoki bot o\'chirilgan!');
+      console.error('Iltimos, @BotFather dan yangi token oling.\n');
+    }
+    
+    process.exit(1);
+  }
+}
+
+startBot();
 
 // Graceful shutdown
 process.once('SIGINT', () => {
