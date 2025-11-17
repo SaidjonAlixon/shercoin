@@ -139,9 +139,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       req.session.userId = user.id;
 
       res.json({ success: true, userId: user.id });
-    } catch (error) {
-      console.error("Auth error:", error);
-      res.status(500).json({ error: "Authentication failed" });
+    } catch (error: any) {
+      console.error("❌ Auth error:", error);
+      console.error("Auth error stack:", error?.stack);
+      console.error("Auth error name:", error?.name);
+      console.error("Auth error message:", error?.message);
+      
+      // Agar response yuborilmagan bo'lsa, yuboramiz
+      if (!res.headersSent) {
+        res.status(500).json({ 
+          error: "Authentication failed",
+          message: error?.message || "Autentifikatsiya xatosi yuz berdi"
+        });
+      }
     }
   });
 
