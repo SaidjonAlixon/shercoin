@@ -1,4 +1,5 @@
 // Telegram Bot - WebApp'ni ochish uchun
+import 'dotenv/config';
 import { Telegraf, Markup } from 'telegraf';
 
 const botToken = process.env.TELEGRAM_BOT_TOKEN;
