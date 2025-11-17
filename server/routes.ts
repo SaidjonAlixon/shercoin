@@ -43,43 +43,30 @@ const userTapCounts = new Map<number, { count: number; resetTime: number }>();
 export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/telegram", async (req, res) => {
     try {
-      const { initData, referrerId: referrerIdRaw } = req.body;
-      const referrerId = referrerIdRaw ? parseInt(String(referrerIdRaw), 10) : null;
-      const validReferrerId = referrerId && !isNaN(referrerId) ? referrerId : null;
-
       let telegramId = 999999999;
-      let username = "user";
-      let firstName = "User";
-      let languageCode = "uz";
-
-      if (initData) {
+      
+      if (req.body?.initData) {
         try {
-          const params = new URLSearchParams(initData);
+          const params = new URLSearchParams(req.body.initData);
           const userDataStr = params.get("user");
           if (userDataStr) {
             const userData = JSON.parse(userDataStr);
             telegramId = userData.id || telegramId;
-            username = userData.username || username;
-            firstName = userData.first_name || firstName;
-            languageCode = userData.language_code || languageCode;
           }
-        } catch (e) {
-          // Ignore parse errors
-        }
+        } catch (e) {}
       }
 
       let user = await storage.getUserByTelegramId(telegramId);
-
+      
       if (!user) {
         user = await storage.createUser({
           telegramId,
-          username,
-          firstName,
-          language: languageCode,
-          referrerId: validReferrerId,
+          username: null,
+          firstName: null,
+          language: "uz",
+          referrerId: null,
           theme: "auto",
         });
-
         await storage.createBalance({
           userId: user.id,
           balance: 0,
@@ -90,24 +77,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           level: 1,
           xp: 0,
         });
-
-        if (validReferrerId) {
-          try {
-            await storage.createReferral(validReferrerId, user.id);
-            await storage.updateBalance(validReferrerId, 1000);
-            await storage.createTransaction(validReferrerId, "referral", 1000, { friendId: user.id });
-          } catch (refError) {
-            // Ignore referral errors
-          }
-        }
-      } else {
-        await storage.updateUserLogin(user.id);
       }
 
       return res.json({ success: true, userId: user.id });
     } catch (error: any) {
-      console.error("Auth error:", error);
-      return res.status(500).json({ error: error?.message || "Xato yuz berdi" });
+      return res.status(500).json({ error: error?.message || "Xato" });
     }
   });
 
