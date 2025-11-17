@@ -5,13 +5,22 @@ import { verifyTelegramWebAppData } from "./lib/telegram";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 
-// SQLite yoki PostgreSQL uchun mos schema import
-const useSQLite = !process.env.DATABASE_URL || process.env.DATABASE_URL.startsWith('file:') || process.env.DATABASE_URL.endsWith('.db');
-const schemaModule = useSQLite 
-  ? await import('@shared/schema-sqlite')
-  : await import('@shared/schema');
+// SQLite yoki PostgreSQL uchun mos schema import - lazy initialization
+let schemaModule: any = null;
+let schemaInitialized = false;
 
-const { users, balances, tasks, articles, boosts } = schemaModule;
+async function getSchema() {
+  if (schemaInitialized && schemaModule) {
+    return schemaModule;
+  }
+  
+  const useSQLite = !process.env.DATABASE_URL || process.env.DATABASE_URL.startsWith('file:') || process.env.DATABASE_URL.endsWith('.db');
+  schemaModule = useSQLite 
+    ? await import('@shared/schema-sqlite')
+    : await import('@shared/schema');
+  schemaInitialized = true;
+  return schemaModule;
+}
 
 const ENERGY_REGEN_RATE = 5;
 const ENERGY_REGEN_INTERVAL = 3;
