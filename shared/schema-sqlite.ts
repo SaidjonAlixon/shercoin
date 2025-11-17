@@ -1,128 +1,129 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, bigint, integer, timestamp, boolean, jsonb } from "drizzle-orm/pg-core";
+import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const users = pgTable("users", {
-  id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
-  telegramId: bigint("telegram_id", { mode: "number" }).notNull().unique(),
+export const users = sqliteTable("users", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  telegramId: integer("telegram_id").notNull().unique(),
   username: text("username"),
   firstName: text("first_name"),
-  language: varchar("language", { length: 10 }).default("uz"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  lastLoginAt: timestamp("last_login_at").defaultNow().notNull(),
-  referrerId: bigint("referrer_id", { mode: "number" }),
-  theme: varchar("theme", { length: 10 }).default("auto"),
+  language: text("language").default("uz"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  lastLoginAt: integer("last_login_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  referrerId: integer("referrer_id"),
+  theme: text("theme").default("auto"),
 });
 
-export const balances = pgTable("balances", {
-  userId: bigint("user_id", { mode: "number" }).primaryKey().references(() => users.id),
-  balance: bigint("balance", { mode: "number" }).default(0).notNull(),
-  hourlyIncome: bigint("hourly_income", { mode: "number" }).default(0).notNull(),
-  totalTaps: bigint("total_taps", { mode: "number" }).default(0).notNull(),
+export const balances = sqliteTable("balances", {
+  userId: integer("user_id").primaryKey().references(() => users.id),
+  balance: integer("balance").default(0).notNull(),
+  hourlyIncome: integer("hourly_income").default(0).notNull(),
+  totalTaps: integer("total_taps").default(0).notNull(),
   energy: integer("energy").default(1000).notNull(),
   maxEnergy: integer("max_energy").default(1000).notNull(),
-  energyUpdatedAt: timestamp("energy_updated_at").defaultNow().notNull(),
+  energyUpdatedAt: integer("energy_updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
   level: integer("level").default(1).notNull(),
-  xp: bigint("xp", { mode: "number" }).default(0).notNull(),
+  xp: integer("xp").default(0).notNull(),
 });
 
-export const boosts = pgTable("boosts", {
-  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-  code: varchar("code", { length: 50 }).notNull().unique(),
+export const boosts = sqliteTable("boosts", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  code: text("code").notNull().unique(),
   name: text("name").notNull(),
   description: text("description").notNull(),
   durationSeconds: integer("duration_seconds").notNull(),
-  price: bigint("price", { mode: "number" }).notNull(),
+  price: integer("price").notNull(),
 });
 
-export const userBoosts = pgTable("user_boosts", {
-  id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
-  userId: bigint("user_id", { mode: "number" }).notNull().references(() => users.id),
+export const userBoosts = sqliteTable("user_boosts", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").notNull().references(() => users.id),
   boostId: integer("boost_id").notNull().references(() => boosts.id),
-  startedAt: timestamp("started_at").defaultNow().notNull(),
-  expiresAt: timestamp("expires_at").notNull(),
-  isActive: boolean("is_active").default(true).notNull(),
+  startedAt: integer("started_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+  isActive: integer("is_active", { mode: "boolean" }).default(true).notNull(),
 });
 
-export const tasks = pgTable("tasks", {
-  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-  type: varchar("type", { length: 20 }).notNull(),
+export const tasks = sqliteTable("tasks", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  type: text("type").notNull(),
   title: text("title").notNull(),
   description: text("description").notNull(),
-  reward: bigint("reward", { mode: "number" }).notNull(),
+  reward: integer("reward").notNull(),
   link: text("link"),
-  isActive: boolean("is_active").default(true).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  isActive: integer("is_active", { mode: "boolean" }).default(true).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
 });
 
-export const userTasks = pgTable("user_tasks", {
-  id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
-  userId: bigint("user_id", { mode: "number" }).notNull().references(() => users.id),
+export const userTasks = sqliteTable("user_tasks", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").notNull().references(() => users.id),
   taskId: integer("task_id").notNull().references(() => tasks.id),
-  status: varchar("status", { length: 20 }).default("new").notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  status: text("status").default("new").notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
 });
 
-export const referrals = pgTable("referrals", {
-  id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
-  referrerId: bigint("referrer_id", { mode: "number" }).notNull().references(() => users.id),
-  friendId: bigint("friend_id", { mode: "number" }).notNull().references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  bonusGiven: boolean("bonus_given").default(false).notNull(),
+export const referrals = sqliteTable("referrals", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  referrerId: integer("referrer_id").notNull().references(() => users.id),
+  friendId: integer("friend_id").notNull().references(() => users.id),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  bonusGiven: integer("bonus_given", { mode: "boolean" }).default(false).notNull(),
 });
 
-export const transactions = pgTable("transactions", {
-  id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
-  userId: bigint("user_id", { mode: "number" }).notNull().references(() => users.id),
-  type: varchar("type", { length: 30 }).notNull(),
-  amount: bigint("amount", { mode: "number" }).notNull(),
-  meta: jsonb("meta"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+export const transactions = sqliteTable("transactions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").notNull().references(() => users.id),
+  type: text("type").notNull(),
+  amount: integer("amount").notNull(),
+  meta: text("meta"), // JSON string for SQLite
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
 });
 
-export const promoCodes = pgTable("promo_codes", {
-  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-  code: varchar("code", { length: 50 }).notNull().unique(),
-  reward: bigint("reward", { mode: "number" }).notNull(),
+export const promoCodes = sqliteTable("promo_codes", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  code: text("code").notNull().unique(),
+  reward: integer("reward").notNull(),
   maxUsage: integer("max_usage").notNull(),
   usedCount: integer("used_count").default(0).notNull(),
-  expiresAt: timestamp("expires_at"),
-  isActive: boolean("is_active").default(true).notNull(),
+  expiresAt: integer("expires_at", { mode: "timestamp" }),
+  isActive: integer("is_active", { mode: "boolean" }).default(true).notNull(),
 });
 
-export const promoCodeUsages = pgTable("promo_code_usages", {
-  id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
-  userId: bigint("user_id", { mode: "number" }).notNull().references(() => users.id),
+export const promoCodeUsages = sqliteTable("promo_code_usages", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").notNull().references(() => users.id),
   promoId: integer("promo_id").notNull().references(() => promoCodes.id),
-  usedAt: timestamp("used_at").defaultNow().notNull(),
+  usedAt: integer("used_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
 });
 
-export const articles = pgTable("articles", {
-  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+export const articles = sqliteTable("articles", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   title: text("title").notNull(),
   content: text("content").notNull(),
-  reward: bigint("reward", { mode: "number" }).notNull(),
-  isActive: boolean("is_active").default(true).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  reward: integer("reward").notNull(),
+  isActive: integer("is_active", { mode: "boolean" }).default(true).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
 });
 
-export const userArticles = pgTable("user_articles", {
-  id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
-  userId: bigint("user_id", { mode: "number" }).notNull().references(() => users.id),
+export const userArticles = sqliteTable("user_articles", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").notNull().references(() => users.id),
   articleId: integer("article_id").notNull().references(() => articles.id),
-  completedAt: timestamp("completed_at").defaultNow().notNull(),
+  completedAt: integer("completed_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
 });
 
-export const dailyLogins = pgTable("daily_logins", {
-  id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
-  userId: bigint("user_id", { mode: "number" }).notNull().references(() => users.id),
-  loginDate: timestamp("login_date").defaultNow().notNull(),
+export const dailyLogins = sqliteTable("daily_logins", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").notNull().references(() => users.id),
+  loginDate: integer("login_date", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
   streak: integer("streak").default(1).notNull(),
-  rewardClaimed: boolean("reward_claimed").default(false).notNull(),
+  rewardClaimed: integer("reward_claimed", { mode: "boolean" }).default(false).notNull(),
 });
 
+// Relations (same as PostgreSQL)
 export const usersRelations = relations(users, ({ one, many }) => ({
   balance: one(balances, {
     fields: [users.id],
@@ -236,6 +237,7 @@ export const dailyLoginsRelations = relations(dailyLogins, ({ one }) => ({
   }),
 }));
 
+// Zod schemas
 const _insertUserSchema = createInsertSchema(users);
 export const insertUserSchema = _insertUserSchema.omit({ id: true, createdAt: true, lastLoginAt: true });
 
@@ -275,6 +277,7 @@ export const insertUserArticleSchema = _insertUserArticleSchema.omit({ id: true,
 const _insertDailyLoginSchema = createInsertSchema(dailyLogins);
 export const insertDailyLoginSchema = _insertDailyLoginSchema.omit({ id: true, loginDate: true });
 
+// Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
@@ -313,3 +316,4 @@ export type UserArticle = typeof userArticles.$inferSelect;
 
 export type InsertDailyLogin = z.infer<typeof insertDailyLoginSchema>;
 export type DailyLogin = typeof dailyLogins.$inferSelect;
+
