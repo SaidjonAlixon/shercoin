@@ -34,12 +34,22 @@ app.use(
   })
 );
 
+// Error handler
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  const status = err.status || err.statusCode || 500;
+  const message = err.message || "Internal Server Error";
+  res.status(status).json({ message });
+});
+
 // Routes ni sozlash
 let routesInitialized = false;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!routesInitialized) {
-    await registerRoutes(app);
+    // Vercel uchun Server kerak emas, faqat routes qo'shamiz
+    // registerRoutes Server qaytaradi, lekin biz uni ishlatmaymiz
+    const server = await registerRoutes(app);
+    // Server ni ishlatmaymiz, chunki Vercel o'zi request'larni handle qiladi
     routesInitialized = true;
   }
 
