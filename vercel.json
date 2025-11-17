@@ -6,10 +6,10 @@
   "framework": null,
   "functions": {
     "api/index.ts": {
-      "includeFiles": "server/** shared/**"
+      "includeFiles": "server/**/* shared/**/*"
     },
     "api/bot.ts": {
-      "includeFiles": "server/** shared/**"
+      "includeFiles": "server/**/* shared/**/*"
     }
   },
   "rewrites": [
