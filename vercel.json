@@ -7,9 +7,16 @@
   "functions": {
     "api/index.ts": {
       "includeFiles": "server/** shared/**"
+    },
+    "api/bot.ts": {
+      "includeFiles": "server/** shared/**"
     }
   },
   "rewrites": [
+    {
+      "source": "/api/bot",
+      "destination": "/api/bot"
+    },
     {
       "source": "/api/(.*)",
       "destination": "/api/index"
