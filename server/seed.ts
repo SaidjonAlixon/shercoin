@@ -1,15 +1,14 @@
 import { db } from "./db";
 
-// SQLite yoki PostgreSQL uchun mos schema import
-const useSQLite = !process.env.DATABASE_URL || process.env.DATABASE_URL.startsWith('file:') || process.env.DATABASE_URL.endsWith('.db');
-const schemaModule = useSQLite 
-  ? await import('@shared/schema-sqlite')
-  : await import('@shared/schema');
-
-const { boosts, tasks, articles, promoCodes } = schemaModule;
-
 async function seed() {
   console.log("Seeding database...");
+
+  const useSQLite = !process.env.DATABASE_URL || process.env.DATABASE_URL.startsWith('file:') || process.env.DATABASE_URL.endsWith('.db');
+  const schemaModule = useSQLite 
+    ? await import('@shared/schema-sqlite')
+    : await import('@shared/schema');
+
+  const { boosts, tasks, articles, promoCodes } = schemaModule;
 
   await db.insert(boosts).values([
     {
