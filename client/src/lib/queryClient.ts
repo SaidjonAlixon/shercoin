@@ -1,5 +1,21 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
+// userId ni localStorage'dan o'qish
+function getUserId(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('userId');
+}
+
+// userId ni localStorage'ga saqlash
+export function setUserId(userId: number | string | null) {
+  if (typeof window === 'undefined') return;
+  if (userId === null) {
+    localStorage.removeItem('userId');
+  } else {
+    localStorage.setItem('userId', String(userId));
+  }
+}
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     let errorMessage = res.statusText;
@@ -28,9 +44,22 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<any> {
+  const headers: Record<string, string> = {};
+  
+  // Content-Type qo'shamiz
+  if (data) {
+    headers["Content-Type"] = "application/json";
+  }
+  
+  // userId header'ni qo'shamiz (agar mavjud bo'lsa)
+  const userId = getUserId();
+  if (userId) {
+    headers["x-user-id"] = userId;
+  }
+  
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
@@ -51,7 +80,16 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
+    const headers: Record<string, string> = {};
+    
+    // userId header'ni qo'shamiz (agar mavjud bo'lsa)
+    const userId = getUserId();
+    if (userId) {
+      headers["x-user-id"] = userId;
+    }
+    
     const res = await fetch(queryKey.join("/") as string, {
+      headers,
       credentials: "include",
     });
 

@@ -7,7 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { useToast } from "@/hooks/use-toast";
 import { initTelegramWebApp, getTelegramInitData, getTelegramUser, getReferrerId } from "@/lib/telegram";
 import { useEffect, useState } from "react";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, setUserId } from "@/lib/queryClient";
 
 import { Header } from "@/components/layout/header";
 import { BottomNav } from "@/components/layout/bottom-nav";
@@ -194,8 +194,12 @@ function AppContent() {
       initData: initData || "",
       referrerId,
     })
-      .then(() => {
+      .then((data: any) => {
         clearTimeout(timeoutId);
+        // userId ni localStorage'ga saqlaymiz
+        if (data?.userId) {
+          setUserId(data.userId);
+        }
         setIsAuthenticated(true);
       })
       .catch((error: any) => {

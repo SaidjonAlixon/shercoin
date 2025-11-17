@@ -1,7 +1,6 @@
 // Vercel serverless function uchun
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import express from 'express';
-import session from 'express-session';
 import { initializeDb } from '../server/db';
 import { registerRoutes } from '../server/routes';
 
@@ -14,22 +13,10 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: false }));
 
-// Session middleware - Vercel uchun cookie-based session ishlatamiz
-// MemoryStore serverless muhitda ishlamaydi, shuning uchun cookie-based qilamiz
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET || 'shercoin-secret-prod-key',
-    resave: false,
-    saveUninitialized: false,
-    // Store ni olib tashlaymiz - cookie-based session ishlatamiz
-    cookie: {
-      secure: process.env.NODE_ENV === 'production',
-      httpOnly: true,
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 kun
-      sameSite: 'none' as const,
-    },
-  })
-);
+// Session middleware - Vercel serverless muhitda ishlamaydi
+// Har bir request yangi function invocation bo'ladi
+// Shuning uchun session middleware'ni olib tashlaymiz
+// Auth endpoint'da userId ni JWT token yoki boshqa usul bilan qaytaramiz
 
 // Routes ni sozlash
 let routesInitialized = false;

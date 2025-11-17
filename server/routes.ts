@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { verifyTelegramWebAppData } from "./lib/telegram";
 import { getDb } from "./db";
 import { eq } from "drizzle-orm";
+import { getUserId } from "./middleware/auth";
 
 // SQLite yoki PostgreSQL uchun mos schema import - lazy initialization
 let schemaModule: any = null;
@@ -140,8 +141,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updateUserLogin(user.id);
       }
 
-      req.session.userId = user.id;
-
+      // Session middleware olib tashlandi, userId response'da qaytariladi
+      // Client tomonida localStorage'da saqlanadi va har bir request'da header'da yuboriladi
       res.json({ success: true, userId: user.id });
     } catch (error: any) {
       console.error("❌ Auth error:", error);
@@ -161,7 +162,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/user/profile", async (req, res) => {
     try {
-      const userId = req.session?.userId;
+      const userId = getUserId(req);
       if (!userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }
@@ -205,7 +206,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/tap", async (req, res) => {
     try {
-      const userId = req.session?.userId;
+      const userId = getUserId(req);
       if (!userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }
@@ -265,7 +266,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/boosts", async (req, res) => {
     try {
-      const userId = req.session?.userId;
+      const userId = getUserId(req);
       if (!userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }
@@ -301,7 +302,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/boosts/activate", async (req, res) => {
     try {
-      const userId = req.session?.userId;
+      const userId = getUserId(req);
       if (!userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }
@@ -337,7 +338,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/tasks", async (req, res) => {
     try {
-      const userId = req.session?.userId;
+      const userId = getUserId(req);
       if (!userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }
@@ -362,7 +363,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/tasks/start", async (req, res) => {
     try {
-      const userId = req.session?.userId;
+      const userId = getUserId(req);
       if (!userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }
@@ -386,7 +387,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/tasks/verify", async (req, res) => {
     try {
-      const userId = req.session?.userId;
+      const userId = getUserId(req);
       if (!userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }
@@ -403,7 +404,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/tasks/claim", async (req, res) => {
     try {
-      const userId = req.session?.userId;
+      const userId = getUserId(req);
       if (!userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }
@@ -430,7 +431,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/referrals", async (req, res) => {
     try {
-      const userId = req.session?.userId;
+      const userId = getUserId(req);
       if (!userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }
@@ -463,7 +464,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/articles", async (req, res) => {
     try {
-      const userId = req.session?.userId;
+      const userId = getUserId(req);
       if (!userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }
@@ -485,7 +486,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/articles/complete", async (req, res) => {
     try {
-      const userId = req.session?.userId;
+      const userId = getUserId(req);
       if (!userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }
@@ -517,7 +518,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/promo/claim", async (req, res) => {
     try {
-      const userId = req.session?.userId;
+      const userId = getUserId(req);
       if (!userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }
@@ -554,7 +555,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/daily-login", async (req, res) => {
     try {
-      const userId = req.session?.userId;
+      const userId = getUserId(req);
       if (!userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }
@@ -590,7 +591,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/daily-login/claim", async (req, res) => {
     try {
-      const userId = req.session?.userId;
+      const userId = getUserId(req);
       if (!userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }
