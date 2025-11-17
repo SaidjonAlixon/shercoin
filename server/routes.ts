@@ -41,10 +41,14 @@ const TAP_COOLDOWN_MS = 1000;
 const userTapCounts = new Map<number, { count: number; resetTime: number }>();
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  app.post("/api/auth/telegram", async (req, res) => {
+      app.post("/api/auth/telegram", async (req, res) => {
     try {
       console.log("POST /api/auth/telegram - Request received");
-      const { initData, referrerId } = req.body;
+      const { initData, referrerId: referrerIdRaw } = req.body;
+      
+      // referrerId ni number ga o'tkazamiz
+      const referrerId = referrerIdRaw ? parseInt(String(referrerIdRaw), 10) : null;
+      const validReferrerId = referrerId && !isNaN(referrerId) ? referrerId : null;
 
       const botToken = process.env.TELEGRAM_BOT_TOKEN;
       const isDevelopment = process.env.NODE_ENV === "development";
@@ -112,7 +116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           username: username || null,
           firstName: firstName || null,
           language: languageCode || "uz",
-          referrerId: referrerId || null,
+          referrerId: validReferrerId,
           theme: "auto",
         });
 
@@ -127,10 +131,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           xp: 0,
         });
 
-        if (referrerId) {
-          await storage.createReferral(referrerId, user.id);
-          await storage.updateBalance(referrerId, 1000);
-          await storage.createTransaction(referrerId, "referral", 1000, { friendId: user.id });
+        if (validReferrerId) {
+          await storage.createReferral(validReferrerId, user.id);
+          await storage.updateBalance(validReferrerId, 1000);
+          await storage.createTransaction(validReferrerId, "referral", 1000, { friendId: user.id });
         }
       } else {
         await storage.updateUserLogin(user.id);

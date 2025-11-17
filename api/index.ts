@@ -2,7 +2,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import express from 'express';
 import session from 'express-session';
-import MemoryStore from 'memorystore';
 import { initializeDb } from '../server/db';
 import { registerRoutes } from '../server/routes';
 
@@ -15,36 +14,27 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: false }));
 
-// Session middleware - Vercel uchun memory store ishlatamiz
-const MemoryStoreSession = MemoryStore(session);
-
+// Session middleware - Vercel uchun cookie-based session ishlatamiz
+// MemoryStore serverless muhitda ishlamaydi, shuning uchun cookie-based qilamiz
 app.use(
   session({
     secret: process.env.SESSION_SECRET || 'shercoin-secret-prod-key',
     resave: false,
     saveUninitialized: false,
-    store: new MemoryStoreSession({
-      checkPeriod: 86400000, // 24 soat
-    }),
+    // Store ni olib tashlaymiz - cookie-based session ishlatamiz
     cookie: {
-      secure: true,
+      secure: process.env.NODE_ENV === 'production',
       httpOnly: true,
-      maxAge: 30 * 24 * 60 * 60 * 1000,
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 kun
       sameSite: 'none' as const,
     },
   })
 );
 
-// Error handler
-app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  const status = err.status || err.statusCode || 500;
-  const message = err.message || "Internal Server Error";
-  res.status(status).json({ message });
-});
-
 // Routes ni sozlash
 let routesInitialized = false;
 let initializationPromise: Promise<void> | null = null;
+let errorHandlerRegistered = false;
 
 async function initialize() {
   if (routesInitialized) {
@@ -69,6 +59,28 @@ async function initialize() {
       // registerRoutes Server qaytaradi, lekin Vercel'da null qaytaradi
       const server = await registerRoutes(app);
       console.log("Server returned:", server ? "Server created" : "No server (Vercel mode)");
+      
+      // Error handler middleware - routes dan keyin qo'yamiz (faqat bir marta)
+      if (!errorHandlerRegistered) {
+        app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+          console.error("❌ Express error handler:", err);
+          console.error("Error stack:", err?.stack);
+          
+          if (res.headersSent) {
+            return next(err);
+          }
+          
+          const status = err.status || err.statusCode || 500;
+          const message = err.message || "Internal Server Error";
+          res.status(status).json({ 
+            error: "Internal Server Error",
+            message: message,
+            details: process.env.NODE_ENV === 'development' ? err?.stack : undefined
+          });
+        });
+        errorHandlerRegistered = true;
+      }
+      
       // Server ni ishlatmaymiz, chunki Vercel o'zi request'larni handle qiladi
       routesInitialized = true;
       console.log("✅ Routes initialized successfully");
@@ -103,8 +115,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // Express app ni ishlatamiz
-    return app(req as any, res as any);
+    // Express app ni ishlatamiz - Vercel uchun
+    app(req as any, res as any);
   } catch (error: any) {
     console.error("❌ Handler error:", error);
     console.error("Error stack:", error?.stack);
