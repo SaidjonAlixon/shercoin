@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { verifyTelegramWebAppData } from "./lib/telegram";
-import { db } from "./db";
+import { getDb } from "./db";
 import { eq } from "drizzle-orm";
 
 // SQLite yoki PostgreSQL uchun mos schema import - lazy initialization
@@ -20,6 +20,17 @@ async function getSchema() {
     : await import('@shared/schema');
   schemaInitialized = true;
   return schemaModule;
+}
+
+async function getTables() {
+  const schema = await getSchema();
+  return {
+    users: schema.users,
+    balances: schema.balances,
+    tasks: schema.tasks,
+    articles: schema.articles,
+    boosts: schema.boosts,
+  };
 }
 
 const ENERGY_REGEN_RATE = 5;
@@ -214,7 +225,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const activeBoosts = await storage.getUserActiveBoosts(userId);
       let tapMultiplier = 1;
       for (const boost of activeBoosts) {
-        const boostData = await db.select().from(boosts).where(eq(boosts.id, boost.boostId)).limit(1);
+        const tables = await getTables();
+        const db = await getDb();
+        const boostData = await db.select().from(tables.boosts).where(eq(tables.boosts.id, boost.boostId)).limit(1);
         if (boostData[0]?.code === "DOUBLE_TAP") {
           tapMultiplier = 2;
         }
@@ -285,7 +298,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
 
-      const [boost] = await db.select().from(boosts).where(eq(boosts.id, boostId)).limit(1);
+      const tables = await getTables();
+      const db = await getDb();
+      const [boost] = await db.select().from(tables.boosts).where(eq(tables.boosts.id, boostId)).limit(1);
       if (!boost) {
         return res.status(404).json({ error: "Boost not found" });
       }
@@ -380,7 +395,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const { taskId } = req.body;
 
-      const [task] = await db.select().from(tasks).where(eq(tasks.id, taskId)).limit(1);
+      const tables = await getTables();
+      const db = await getDb();
+      const [task] = await db.select().from(tables.tasks).where(eq(tables.tasks.id, taskId)).limit(1);
       if (!task) {
         return res.status(404).json({ error: "Task not found" });
       }
@@ -460,7 +477,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const { articleId } = req.body;
 
-      const [article] = await db.select().from(articles).where(eq(articles.id, articleId)).limit(1);
+      const tables = await getTables();
+      const db = await getDb();
+      const [article] = await db.select().from(tables.articles).where(eq(tables.articles.id, articleId)).limit(1);
       if (!article) {
         return res.status(404).json({ error: "Article not found" });
       }

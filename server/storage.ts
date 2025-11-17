@@ -1,4 +1,4 @@
-import { db } from "./db";
+import { getDb } from "./db";
 import { eq, and, desc, sql } from "drizzle-orm";
 
 // SQLite yoki PostgreSQL uchun mos schema import - lazy initialization
@@ -98,8 +98,9 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   async getUser(id: number): Promise<User | undefined> {
     try {
+      const db = await getDb();
       const tables = await getTables();
-      const [user] = await db.select().from(tables.users).where(eq(tables.users.id, id));
+      const [user] = await (await getDb()).select().from(tables.users).where(eq(tables.users.id, id));
       return user || undefined;
     } catch (error) {
       console.error("getUser error:", error);
@@ -110,7 +111,7 @@ export class DatabaseStorage implements IStorage {
   async getUserByTelegramId(telegramId: number): Promise<User | undefined> {
     try {
       const tables = await getTables();
-      const [user] = await db.select().from(tables.users).where(eq(tables.users.telegramId, telegramId));
+      const [user] = await (await getDb()).select().from(tables.users).where(eq(tables.users.telegramId, telegramId));
       return user || undefined;
     } catch (error) {
       console.error("getUserByTelegramId error:", error);
@@ -123,13 +124,13 @@ export class DatabaseStorage implements IStorage {
       const tables = await getTables();
       if (useSQLite) {
         // SQLite uchun returning() ishlamaydi, shuning uchun insert qilgandan keyin select qilamiz
-        await db.insert(tables.users).values(insertUser);
-        const [user] = await db.select().from(tables.users).where(eq(tables.users.telegramId, insertUser.telegramId));
+        await (await getDb()).insert(tables.users).values(insertUser);
+        const [user] = await (await getDb()).select().from(tables.users).where(eq(tables.users.telegramId, insertUser.telegramId));
         if (!user) throw new Error("Failed to create user");
         return user;
       } else {
         // PostgreSQL uchun returning() ishlaydi
-        const [user] = await db.insert(tables.users).values(insertUser).returning();
+        const [user] = await (await getDb()).insert(tables.users).values(insertUser).returning();
         return user;
       }
     } catch (error) {
@@ -141,7 +142,7 @@ export class DatabaseStorage implements IStorage {
   async updateUserLogin(id: number): Promise<void> {
     try {
       const tables = await getTables();
-      await db.update(tables.users).set({ lastLoginAt: new Date() }).where(eq(tables.users.id, id));
+      await (await getDb()).update(tables.users).set({ lastLoginAt: new Date() }).where(eq(tables.users.id, id));
     } catch (error) {
       console.error("updateUserLogin error:", error);
       throw error;
@@ -151,7 +152,7 @@ export class DatabaseStorage implements IStorage {
   async getBalance(userId: number): Promise<Balance | undefined> {
     try {
       const tables = await getTables();
-      const [balance] = await db.select().from(tables.balances).where(eq(tables.balances.userId, userId));
+      const [balance] = await (await getDb()).select().from(tables.balances).where(eq(tables.balances.userId, userId));
       return balance || undefined;
     } catch (error) {
       console.error("getBalance error:", error);
@@ -164,13 +165,13 @@ export class DatabaseStorage implements IStorage {
       const tables = await getTables();
       if (useSQLite) {
         // SQLite uchun returning() ishlamaydi
-        await db.insert(tables.balances).values(insertBalance);
-        const [balance] = await db.select().from(tables.balances).where(eq(tables.balances.userId, insertBalance.userId));
+        await (await getDb()).insert(tables.balances).values(insertBalance);
+        const [balance] = await (await getDb()).select().from(tables.balances).where(eq(tables.balances.userId, insertBalance.userId));
         if (!balance) throw new Error("Failed to create balance");
         return balance;
       } else {
         // PostgreSQL uchun returning() ishlaydi
-        const [balance] = await db.insert(tables.balances).values(insertBalance).returning();
+        const [balance] = await (await getDb()).insert(tables.balances).values(insertBalance).returning();
         return balance;
       }
     } catch (error) {
@@ -182,11 +183,12 @@ export class DatabaseStorage implements IStorage {
   async updateBalance(userId: number, amount: number): Promise<void> {
     try {
       const tables = await getTables();
-      const [currentBalance] = await db.select().from(tables.balances).where(eq(tables.balances.userId, userId));
+      const [currentBalance] = await (await getDb()).select().from(tables.balances).where(eq(tables.balances.userId, userId));
       if (!currentBalance) {
         throw new Error(`Balance not found for userId: ${userId}`);
       }
       const newBalance = Number(currentBalance.balance || 0) + amount;
+      const db = await getDb();
       await db
         .update(tables.balances)
         .set({ balance: newBalance })
@@ -200,6 +202,7 @@ export class DatabaseStorage implements IStorage {
   async updateEnergy(userId: number, energy: number): Promise<void> {
     try {
       const tables = await getTables();
+      const db = await getDb();
       await db
         .update(tables.balances)
         .set({ 
@@ -216,11 +219,12 @@ export class DatabaseStorage implements IStorage {
   async incrementTaps(userId: number, amount: number): Promise<void> {
     try {
       const tables = await getTables();
-      const [currentBalance] = await db.select().from(tables.balances).where(eq(tables.balances.userId, userId));
+      const [currentBalance] = await (await getDb()).select().from(tables.balances).where(eq(tables.balances.userId, userId));
       if (!currentBalance) {
         throw new Error(`Balance not found for userId: ${userId}`);
       }
       const newTaps = Number(currentBalance.totalTaps || 0) + amount;
+      const db = await getDb();
       await db
         .update(tables.balances)
         .set({ totalTaps: newTaps })
@@ -234,12 +238,13 @@ export class DatabaseStorage implements IStorage {
   async addXP(userId: number, xp: number): Promise<void> {
     try {
       const tables = await getTables();
-      const [balance] = await db.select().from(tables.balances).where(eq(tables.balances.userId, userId));
+      const [balance] = await (await getDb()).select().from(tables.balances).where(eq(tables.balances.userId, userId));
       if (!balance) {
         throw new Error(`Balance not found for userId: ${userId}`);
       }
       const newXP = Number(balance.xp || 0) + xp;
       const newLevel = Math.floor(newXP / 1000) + 1;
+      const db = await getDb();
       await db
         .update(tables.balances)
         .set({ xp: newXP, level: newLevel })
@@ -253,7 +258,7 @@ export class DatabaseStorage implements IStorage {
   async getBoosts(): Promise<Boost[]> {
     try {
       const tables = await getTables();
-      return await db.select().from(tables.boosts);
+      return await (await getDb()).select().from(tables.boosts);
     } catch (error) {
       console.error("getBoosts error:", error);
       throw error;
@@ -263,6 +268,7 @@ export class DatabaseStorage implements IStorage {
   async getUserActiveBoosts(userId: number): Promise<UserBoost[]> {
     try {
       const tables = await getTables();
+      const db = await getDb();
       const now = new Date();
       const allBoosts = await db
         .select()
@@ -274,7 +280,7 @@ export class DatabaseStorage implements IStorage {
           )
         );
       // SQLite uchun timestamp filtrlash
-      return allBoosts.filter(boost => {
+      return allBoosts.filter((boost: any) => {
         try {
           let expiresAt: number;
           if (boost.expiresAt instanceof Date) {
@@ -299,7 +305,7 @@ export class DatabaseStorage implements IStorage {
   async activateBoost(userId: number, boostId: number, expiresAt: Date): Promise<void> {
     try {
       const tables = await getTables();
-      await db.insert(tables.userBoosts).values({
+      await (await getDb()).insert(tables.userBoosts).values({
         userId,
         boostId,
         expiresAt,
@@ -314,7 +320,7 @@ export class DatabaseStorage implements IStorage {
   async getTasks(): Promise<Task[]> {
     try {
       const tables = await getTables();
-      return await db.select().from(tables.tasks).where(eq(tables.tasks.isActive, true));
+      return await (await getDb()).select().from(tables.tasks).where(eq(tables.tasks.isActive, true));
     } catch (error) {
       console.error("getTasks error:", error);
       throw error;
@@ -324,7 +330,7 @@ export class DatabaseStorage implements IStorage {
   async getUserTasks(userId: number): Promise<UserTask[]> {
     try {
       const tables = await getTables();
-      return await db.select().from(tables.userTasks).where(eq(tables.userTasks.userId, userId));
+      return await (await getDb()).select().from(tables.userTasks).where(eq(tables.userTasks.userId, userId));
     } catch (error) {
       console.error("getUserTasks error:", error);
       throw error;
@@ -336,6 +342,7 @@ export class DatabaseStorage implements IStorage {
       const tables = await getTables();
       if (useSQLite) {
         // SQLite uchun returning() ishlamaydi
+        const db = await getDb();
         await db.insert(tables.userTasks).values({ userId, taskId, status: "in_progress" });
         const [userTask] = await db
           .select()
@@ -345,6 +352,7 @@ export class DatabaseStorage implements IStorage {
         return userTask;
       } else {
         // PostgreSQL uchun returning() ishlaydi
+        const db = await getDb();
         const [userTask] = await db
           .insert(tables.userTasks)
           .values({ userId, taskId, status: "in_progress" })
@@ -360,6 +368,7 @@ export class DatabaseStorage implements IStorage {
   async updateUserTaskStatus(userId: number, taskId: number, status: string): Promise<void> {
     try {
       const tables = await getTables();
+      const db = await getDb();
       await db
         .update(tables.userTasks)
         .set({ status, updatedAt: new Date() })
@@ -373,7 +382,7 @@ export class DatabaseStorage implements IStorage {
   async getReferrals(userId: number): Promise<Referral[]> {
     try {
       const tables = await getTables();
-      return await db.select().from(tables.referrals).where(eq(tables.referrals.referrerId, userId));
+      return await (await getDb()).select().from(tables.referrals).where(eq(tables.referrals.referrerId, userId));
     } catch (error) {
       console.error("getReferrals error:", error);
       throw error;
@@ -383,7 +392,7 @@ export class DatabaseStorage implements IStorage {
   async createReferral(referrerId: number, friendId: number): Promise<void> {
     try {
       const tables = await getTables();
-      await db.insert(tables.referrals).values({ referrerId, friendId, bonusGiven: false });
+      await (await getDb()).insert(tables.referrals).values({ referrerId, friendId, bonusGiven: false });
     } catch (error) {
       console.error("createReferral error:", error);
       throw error;
@@ -395,7 +404,7 @@ export class DatabaseStorage implements IStorage {
       const tables = await getTables();
       // SQLite uchun meta JSON string sifatida saqlanadi, PostgreSQL uchun JSONB
       const metaValue = meta ? (useSQLite ? JSON.stringify(meta) : meta) : null;
-      await db.insert(tables.transactions).values({ userId, type, amount, meta: metaValue });
+      await (await getDb()).insert(tables.transactions).values({ userId, type, amount, meta: metaValue });
     } catch (error) {
       console.error("createTransaction error:", error);
       throw error;
@@ -405,6 +414,7 @@ export class DatabaseStorage implements IStorage {
   async getPromoCode(code: string): Promise<PromoCode | undefined> {
     try {
       const tables = await getTables();
+      const db = await getDb();
       const [promo] = await db
         .select()
         .from(tables.promoCodes)
@@ -419,6 +429,7 @@ export class DatabaseStorage implements IStorage {
   async hasUsedPromoCode(userId: number, promoId: number): Promise<boolean> {
     try {
       const tables = await getTables();
+      const db = await getDb();
       const [usage] = await db
         .select()
         .from(tables.promoCodeUsages)
@@ -433,6 +444,7 @@ export class DatabaseStorage implements IStorage {
   async usePromoCode(userId: number, promoId: number): Promise<void> {
     try {
       const tables = await getTables();
+      const db = await getDb();
       await db.insert(tables.promoCodeUsages).values({ userId, promoId });
       const [currentPromo] = await db.select().from(tables.promoCodes).where(eq(tables.promoCodes.id, promoId));
       if (currentPromo) {
@@ -450,7 +462,7 @@ export class DatabaseStorage implements IStorage {
   async getArticles(): Promise<Article[]> {
     try {
       const tables = await getTables();
-      return await db.select().from(tables.articles).where(eq(tables.articles.isActive, true));
+      return await (await getDb()).select().from(tables.articles).where(eq(tables.articles.isActive, true));
     } catch (error) {
       console.error("getArticles error:", error);
       throw error;
@@ -460,11 +472,12 @@ export class DatabaseStorage implements IStorage {
   async getUserArticles(userId: number): Promise<number[]> {
     try {
       const tables = await getTables();
+      const db = await getDb();
       const completed = await db
         .select({ articleId: tables.userArticles.articleId })
         .from(tables.userArticles)
         .where(eq(tables.userArticles.userId, userId));
-      return completed.map((c) => c.articleId);
+      return completed.map((c: any) => c.articleId);
     } catch (error) {
       console.error("getUserArticles error:", error);
       throw error;
@@ -474,7 +487,7 @@ export class DatabaseStorage implements IStorage {
   async markArticleComplete(userId: number, articleId: number): Promise<void> {
     try {
       const tables = await getTables();
-      await db.insert(tables.userArticles).values({ userId, articleId });
+      await (await getDb()).insert(tables.userArticles).values({ userId, articleId });
     } catch (error) {
       console.error("markArticleComplete error:", error);
       throw error;
@@ -484,6 +497,7 @@ export class DatabaseStorage implements IStorage {
   async getDailyLogin(userId: number): Promise<DailyLogin | undefined> {
     try {
       const tables = await getTables();
+      const db = await getDb();
       const [login] = await db
         .select()
         .from(tables.dailyLogins)
@@ -500,7 +514,7 @@ export class DatabaseStorage implements IStorage {
   async createOrUpdateDailyLogin(userId: number, streak: number): Promise<void> {
     try {
       const tables = await getTables();
-      await db.insert(tables.dailyLogins).values({ userId, streak, rewardClaimed: true });
+      await (await getDb()).insert(tables.dailyLogins).values({ userId, streak, rewardClaimed: true });
     } catch (error) {
       console.error("createOrUpdateDailyLogin error:", error);
       throw error;

@@ -52,14 +52,18 @@ async function getDb() {
   if (!dbInitialized) {
     await initializeDb();
   }
+  if (!db) {
+    throw new Error('Database not initialized. Call initializeDb() first.');
+  }
   return db;
 }
 
-// Backward compatibility - db ni ham export qilamiz
-// Lekin u async bo'lgani uchun, avval initializeDb() ni chaqirish kerak
+// db ni getter orqali export qilamiz - bu har safar getDb() ni chaqiradi
+// Lekin bu sync bo'lishi kerak, shuning uchun db ni to'g'ridan-to'g'ri export qilamiz
+// va foydalanuvchilar initializeDb() ni avval chaqirishlari kerak
+
 export { getDb, pool, initializeDb };
 
-// db ni proxy orqali export qilamiz - bu ishlamaydi, shuning uchun getDb() ishlatamiz
-// Lekin backward compatibility uchun, db ni ham export qilamiz
-// Eslatma: db ni to'g'ridan-to'g'ri ishlatishdan oldin initializeDb() ni chaqirish kerak
+// db ni export qilamiz - lekin u faqat initializeDb() chaqirilgandan keyin to'ldiriladi
+// Eslatma: db ni ishlatishdan oldin initializeDb() ni chaqirish kerak
 export { db };
