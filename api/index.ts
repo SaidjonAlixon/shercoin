@@ -18,7 +18,19 @@ async function initialize() {
 
   initializationPromise = (async () => {
     try {
-      await initializeDb();
+      // Database'ni initialize qilamiz
+      try {
+        await Promise.race([
+          initializeDb(),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Database timeout')), 10000)
+          )
+        ]);
+      } catch (dbError: any) {
+        console.error('Database init failed:', dbError?.message);
+        // Database xatosi bo'lsa ham, routes'ni qo'shamiz (ba'zi endpoint'lar ishlashi mumkin)
+      }
+
       await registerRoutes(app);
       
       app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

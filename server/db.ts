@@ -2,49 +2,60 @@
 let db: any = null;
 let pool: any = null;
 let dbInitialized = false;
+let dbInitPromise: Promise<{ db: any; pool: any }> | null = null;
 
 async function initializeDb() {
-  if (dbInitialized) {
+  if (dbInitialized && db) {
     return { db, pool };
   }
 
-  try {
-    const useSQLite = !process.env.DATABASE_URL || process.env.DATABASE_URL.startsWith('file:') || process.env.DATABASE_URL.endsWith('.db');
+  if (dbInitPromise) {
+    return dbInitPromise;
+  }
 
-    if (useSQLite) {
-      // SQLite uchun
-      const Database = (await import('better-sqlite3')).default;
-      const dbPath = process.env.DATABASE_URL?.replace('file:', '') || './shercoin.db';
-      const sqlite = new Database(dbPath);
-      // SQLite uchun WAL mode yoqamiz (Write-Ahead Logging) - bu concurrent read/write uchun yaxshi
-      sqlite.pragma('journal_mode = WAL');
-      const { drizzle } = await import('drizzle-orm/better-sqlite3');
-      const schema = await import('@shared/schema-sqlite');
-      db = drizzle(sqlite, { schema });
-      console.log('✅ SQLite database initialized');
-    } else {
-      // Neon PostgreSQL uchun
-      if (!process.env.DATABASE_URL) {
-        throw new Error('DATABASE_URL environment variable topilmadi!');
+  dbInitPromise = (async () => {
+    try {
+      const useSQLite = !process.env.DATABASE_URL || process.env.DATABASE_URL.startsWith('file:') || process.env.DATABASE_URL.endsWith('.db');
+
+      if (useSQLite) {
+        const Database = (await import('better-sqlite3')).default;
+        const dbPath = process.env.DATABASE_URL?.replace('file:', '') || './shercoin.db';
+        const sqlite = new Database(dbPath);
+        sqlite.pragma('journal_mode = WAL');
+        const { drizzle } = await import('drizzle-orm/better-sqlite3');
+        const schema = await import('@shared/schema-sqlite');
+        db = drizzle(sqlite, { schema });
+      } else {
+        if (!process.env.DATABASE_URL) {
+          throw new Error('DATABASE_URL topilmadi');
+        }
+        
+        const { Pool, neonConfig } = await import('@neondatabase/serverless');
+        const ws = await import("ws");
+        const { drizzle } = await import('drizzle-orm/neon-serverless');
+        const schema = await import('@shared/schema');
+
+        neonConfig.webSocketConstructor = ws.default;
+        neonConfig.fetchConnectionCache = true;
+
+        pool = new Pool({ 
+          connectionString: process.env.DATABASE_URL,
+          max: 1
+        });
+        db = drizzle({ client: pool, schema });
       }
-      const { Pool, neonConfig } = await import('@neondatabase/serverless');
-      const ws = await import("ws");
-      const { drizzle } = await import('drizzle-orm/neon-serverless');
-      const schema = await import('@shared/schema');
 
-      neonConfig.webSocketConstructor = ws.default;
-
-      pool = new Pool({ connectionString: process.env.DATABASE_URL });
-      db = drizzle({ client: pool, schema });
-      console.log('✅ PostgreSQL database initialized');
+      dbInitialized = true;
+      return { db, pool };
+    } catch (error: any) {
+      dbInitialized = false;
+      dbInitPromise = null;
+      console.error('Database init error:', error?.message || error);
+      throw error;
     }
+  })();
 
-    dbInitialized = true;
-    return { db, pool };
-  } catch (error: any) {
-    console.error('❌ Database initialization error:', error);
-    throw new Error(`Database connection failed: ${error?.message || 'Unknown error'}`);
-  }
+  return dbInitPromise;
 }
 
 // Lazy initialization - birinchi marta chaqirilganda initialize qiladi
