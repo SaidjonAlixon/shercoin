@@ -70,16 +70,43 @@ if (bot) {
 // Webhook handler
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
+    // GET request - webhook info yoki test
+    if (req.method === 'GET') {
+      return res.status(200).json({ 
+        ok: true, 
+        message: 'Telegram Bot Webhook endpoint is ready',
+        botConfigured: !!bot 
+      });
+    }
+
+    // POST request - Telegram webhook
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
+
     if (!bot) {
       return res.status(500).json({ error: 'Bot token not configured' });
     }
 
+    // Request body'ni tekshiramiz
+    const update = req.body;
+    
+    if (!update || typeof update !== 'object') {
+      console.error('❌ Invalid update body:', update);
+      return res.status(400).json({ error: 'Invalid request body' });
+    }
+
     // Telegram webhook request'ni handle qilamiz
-    await bot.handleUpdate(req.body);
+    await bot.handleUpdate(update);
     
     return res.status(200).json({ ok: true });
   } catch (error: any) {
     console.error('❌ Webhook error:', error);
+    console.error('Error details:', {
+      message: error?.message,
+      stack: error?.stack,
+      body: req.body
+    });
     return res.status(500).json({ error: 'Webhook error', message: error?.message });
   }
 }
