@@ -66,8 +66,9 @@ async function initialize() {
 
       console.log("🔧 Step 2: Initializing routes...");
       // Vercel uchun Server kerak emas, faqat routes qo'shamiz
-      // registerRoutes Server qaytaradi, lekin biz uni ishlatmaymiz
-      await registerRoutes(app);
+      // registerRoutes Server qaytaradi, lekin Vercel'da null qaytaradi
+      const server = await registerRoutes(app);
+      console.log("Server returned:", server ? "Server created" : "No server (Vercel mode)");
       // Server ni ishlatmaymiz, chunki Vercel o'zi request'larni handle qiladi
       routesInitialized = true;
       console.log("✅ Routes initialized successfully");

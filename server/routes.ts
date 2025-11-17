@@ -623,7 +623,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const httpServer = createServer(app);
-
-  return httpServer;
+  // Vercel uchun Server kerak emas, chunki Vercel o'zi request'larni handle qiladi
+  // Lekin development uchun Server kerak
+  const isVercel = !!process.env.VERCEL;
+  
+  if (isVercel) {
+    // Vercel'da Server yaratmaymiz, faqat routes qo'shildi
+    console.log("✅ Routes registered for Vercel");
+    return null as any; // Vercel'da Server kerak emas
+  } else {
+    // Development uchun Server yaratamiz
+    const httpServer = createServer(app);
+    console.log("✅ Routes registered and Server created");
+    return httpServer;
+  }
 }
