@@ -1,56 +1,32 @@
-// Vercel serverless function uchun
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import express from 'express';
 import { initializeDb } from '../server/db';
 import { registerRoutes } from '../server/routes';
 
 const app = express();
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-let routesInitialized = false;
-let initializationPromise: Promise<void> | null = null;
+let initialized = false;
+let initPromise: Promise<void> | null = null;
 
 async function initialize() {
-  if (routesInitialized) return;
-  if (initializationPromise) return initializationPromise;
+  if (initialized) return;
+  if (initPromise) return initPromise;
 
-  initializationPromise = (async () => {
-    try {
-      // Database'ni initialize qilamiz
-      try {
-        await Promise.race([
-          initializeDb(),
-          new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Database timeout')), 10000)
-          )
-        ]);
-      } catch (dbError: any) {
-        console.error('Database init failed:', dbError?.message);
-        // Database xatosi bo'lsa ham, routes'ni qo'shamiz (ba'zi endpoint'lar ishlashi mumkin)
-      }
-
-      await registerRoutes(app);
-      
-      app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-        if (res.headersSent) return next(err);
-        const status = err.status || err.statusCode || 500;
-        res.status(status).json({ 
-          error: "Internal Server Error",
-          message: err.message || "Server xatosi"
-        });
-      });
-      
-      routesInitialized = true;
-    } catch (error: any) {
-      routesInitialized = false;
-      initializationPromise = null;
-      throw error;
-    }
+  initPromise = (async () => {
+    await initializeDb();
+    await registerRoutes(app);
+    
+    app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+      if (res.headersSent) return next(err);
+      res.status(err.status || 500).json({ error: err.message || "Server xatosi" });
+    });
+    
+    initialized = true;
   })();
 
-  return initializationPromise;
+  return initPromise;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -59,9 +35,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     
     return new Promise<void>((resolve) => {
       const timeout = setTimeout(() => {
-        if (!res.headersSent) {
-          res.status(504).json({ error: "Gateway Timeout" });
-        }
+        if (!res.headersSent) res.status(504).json({ error: "Timeout" });
         resolve();
       }, 25000);
       
@@ -72,10 +46,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   } catch (error: any) {
     if (!res.headersSent) {
-      res.status(500).json({ 
-        error: "Internal Server Error",
-        message: error?.message || "Server xatosi yuz berdi"
-      });
+      res.status(500).json({ error: error?.message || "Server xatosi" });
     }
   }
 }
