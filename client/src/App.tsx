@@ -185,35 +185,39 @@ function AppContent() {
       return;
     }
 
-    // Yangi user yaratish
+    // Yangi user yaratish - bir necha marta urinib ko'ramiz
     const initData = getTelegramInitData();
-    apiRequest("POST", "/api/auth/telegram", {
-      initData: initData || "",
-    })
-      .then((data: any) => {
-        if (data?.userId) {
-          setUserId(data.userId);
-          setIsAuthenticated(true);
-        }
+    
+    const tryAuth = (attempt = 1) => {
+      apiRequest("POST", "/api/auth/telegram", {
+        initData: initData || "",
       })
-      .catch((error: any) => {
-        console.error("Auth failed:", error);
-        // Xato bo'lsa ham, oddiy user yaratishga harakat qilamiz
-        apiRequest("POST", "/api/auth/telegram", {})
-          .then((data: any) => {
-            if (data?.userId) {
-              setUserId(data.userId);
-              setIsAuthenticated(true);
-            }
-          })
-          .catch(() => {
-            toast({
-              title: "Xato",
-              description: "Ilovani yuklab bo'lmadi",
-              variant: "destructive",
-            });
-          });
-      });
+        .then((data: any) => {
+          if (data?.userId) {
+            setUserId(data.userId);
+            setIsAuthenticated(true);
+          } else {
+            // Agar userId bo'lmasa, random yaratamiz
+            const randomId = Math.floor(Math.random() * 1000000) + 100000;
+            setUserId(randomId);
+            setIsAuthenticated(true);
+          }
+        })
+        .catch((error: any) => {
+          console.error("Auth failed:", error);
+          if (attempt < 3) {
+            // 3 marta urinib ko'ramiz
+            setTimeout(() => tryAuth(attempt + 1), 1000);
+          } else {
+            // Oxirgi urinish - random userId yaratamiz
+            const randomId = Math.floor(Math.random() * 1000000) + 100000;
+            setUserId(randomId);
+            setIsAuthenticated(true);
+          }
+        });
+    };
+
+    tryAuth();
   }, []);
 
   useEffect(() => {
